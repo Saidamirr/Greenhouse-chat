@@ -2,6 +2,9 @@ package com.example.greenhousechat.network
 
 import com.example.greenhousechat.data.AuthRequest
 import com.example.greenhousechat.data.AuthResponse
+import com.example.greenhousechat.data.PhoneRequest
+import com.example.greenhousechat.data.RegistrationRequest
+import com.example.greenhousechat.data.RegistrationResponse
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -17,10 +20,13 @@ val retrofit = Retrofit.Builder()
 
 interface ApiService {
     @POST("api/v1/users/send-auth-code/")
-    suspend fun getAuthCode(@Body phone: String): Response<Any>
+    suspend fun getAuthCode(@Body phoneRequest: PhoneRequest): Response<Any>
 
     @POST("api/v1/users/check-auth-code/")
     suspend fun checkAuthCode(@Body authRequest: AuthRequest): Response<AuthResponse>
+
+    @POST("/api/v1/users/register/")
+    suspend fun sendRegistration(@Body registrationRequest: RegistrationRequest): Response<RegistrationResponse>
 }
 
 val apiService = retrofit.create(ApiService::class.java)

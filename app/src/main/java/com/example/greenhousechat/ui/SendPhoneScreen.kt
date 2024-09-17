@@ -16,7 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.greenhousechat.viewmodel.AppViewModel
 import com.togitech.ccp.component.TogiCountryCodePicker
-
+import com.togitech.ccp.data.PhoneCode
 
 
 @Composable
@@ -36,6 +36,7 @@ fun SendPhoneScreen(appViewModel: AppViewModel, navController: NavHostController
                 appViewModel.onNumberInputChange(code, phone, isValid)
             },
             label = { Text("Phone Number") },
+            initialCountryIsoCode = "RU"
         )
 
         Button(onClick = { appViewModel.onNumberSubmit(navController) },

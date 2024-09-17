@@ -33,7 +33,7 @@ fun EnterCodeScreen(modifier: Modifier = Modifier,
             label = { Text(text = "Enter code")})
 
         Button(onClick = { appViewModel.onCodeSubmit(navController) },
-            enabled = appViewModel.isNumberValid
+            enabled = appViewModel.isVerificationCodeValid
         ) {
             androidx.compose.material3.Text("Submit")
         }

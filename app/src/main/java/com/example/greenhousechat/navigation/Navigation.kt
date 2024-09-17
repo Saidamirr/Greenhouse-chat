@@ -6,12 +6,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.greenhousechat.ui.EnterCodeScreen
+import com.example.greenhousechat.ui.RegistrationScreen
 import com.example.greenhousechat.ui.SendPhoneScreen
 import com.example.greenhousechat.viewmodel.AppViewModel
 
 sealed class Screen(val route: String) {
     object SendPhoneScreen : Screen("send_phone")
     object EnterCodeScreen : Screen("enter_code")
+    object RegistrationScreen : Screen("registration")
 }
 
 @Composable
@@ -24,6 +26,9 @@ fun AppNavHost(navController: NavHostController) {
         }
         composable(Screen.EnterCodeScreen.route) {
             EnterCodeScreen(navController = navController, appViewModel = appViewModel)
+        }
+        composable(Screen.RegistrationScreen.route) {
+            RegistrationScreen(navController = navController, appViewModel = appViewModel)
         }
     }
 }
