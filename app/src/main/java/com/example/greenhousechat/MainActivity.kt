@@ -10,10 +10,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.greenhousechat.navigation.AppNavHost
 import com.example.greenhousechat.ui.SendPhoneScreen
 import com.example.greenhousechat.ui.theme.GreenhouseChatTheme
+import com.example.greenhousechat.viewmodel.AppViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,7 +24,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             GreenhouseChatTheme {
                 val navController = rememberNavController()
-                AppNavHost(navController = navController) // Здесь вызывается NavHost
+                val appViewModel: AppViewModel = viewModel()
+                AppNavHost(navController = navController, appViewModel) // Здесь вызывается NavHost
             }
         }
 

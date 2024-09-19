@@ -86,10 +86,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     val authResponse = response.body() // Получаем тело ответа
                     authResponse?.let {
                         // Используем данные из AuthResponse
-                        val accessToken = it.accessToken
-                        val refreshToken = it.refreshToken
-                        val userId = it.userId
-                        val isUserExists = it.isUserExists
+                        val accessToken = it.access_token
+                        val refreshToken = it.refresh_token
+                        val userId = it.user_id
+                        val isUserExists = it.is_user_exists
 
                         // Дальнейшая логика, например, навигация на следующий экран
                         if (isUserExists) {
@@ -97,6 +97,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 .putString("access_token", accessToken)
                                 .putString("refresh_token", refreshToken)
                                 .putString("user_id", userId)
+                                .putBoolean("is_authorized", true) //вход в акк
                                 .apply()
                         } else {
                             navController.navigate(Screen.RegistrationScreen.route)
@@ -129,17 +130,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     apiService.sendRegistration(RegistrationRequest(
                         phone = fullPhoneNumber,
                         name = name,
-                        userName = userName)
+                        username = userName)
                     )
 
                 if( response.isSuccessful) {
                     val authResponse = response.body() // Получаем тело ответа
                     authResponse?.let {
                         // Используем данные из AuthResponse
-                        val accessToken = it.accessToken
-                        val refreshToken = it.refreshToken
-                        val userId = it.userId
-
+                        val accessToken = it.access_token
+                        val refreshToken = it.refresh_token
+                        val userId = it.user_id
 
                         // Дальнейшая логика, навигация на следующий экран
 
@@ -147,9 +147,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             .putString("access_token", accessToken)
                             .putString("refresh_token", refreshToken)
                             .putString("user_id", userId)
+                            .putBoolean("is_authorized", true) //вход в акк
                             .apply()
-
                     }
+                    navController.navigate(Screen.ChatScreen.route)
+                } else {
+                    val authResponse = response.errorBody()
                 }
 
             } catch (e: Exception) {
@@ -175,5 +178,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         userName = it
         isUsernNameValid = isValidUsername(userName)
     }
+
+    fun onToProfileButtonClick() {
+
+    }
+
+
 }
 

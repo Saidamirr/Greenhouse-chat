@@ -6,22 +6,22 @@ data class AuthRequest(
 )
 
 data class AuthResponse(
-    val accessToken: String,
-    val refreshToken: String,
-    val userId: String,
-    val isUserExists: Boolean
+    val access_token: String,
+    val refresh_token: String,
+    val user_id: String,
+    val is_user_exists: Boolean
 )
 
 data class RegistrationRequest(
     val phone: String,
     val name: String,
-    val userName: String
+    val username: String
 )
 
 data class RegistrationResponse(
-    val accessToken: String,
-    val refreshToken: String,
-    val userId: String,
+    val access_token: String,
+    val refresh_token: String,
+    val user_id: String,
 )
 
 data class PhoneRequest(
