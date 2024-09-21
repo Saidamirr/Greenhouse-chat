@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.greenhousechat.ui.theme.Typography
 import com.example.greenhousechat.viewmodel.AppViewModel
 import com.togitech.ccp.component.TogiCountryCodePicker
 import com.togitech.ccp.data.PhoneCode
@@ -35,14 +36,14 @@ fun SendPhoneScreen(appViewModel: AppViewModel, navController: NavHostController
             onValueChange = { (code, phone), isValid ->
                 appViewModel.onNumberInputChange(code, phone, isValid)
             },
-            label = { Text("Phone Number") },
+            label = { Text("Номер телефона:") },
             initialCountryIsoCode = "RU"
         )
 
         Button(onClick = { appViewModel.onNumberSubmit(navController) },
             enabled = appViewModel.isNumberValid
             ) {
-            Text("Submit")
+            Text("Отправить", style = Typography.labelSmall)
         }
     }
 }

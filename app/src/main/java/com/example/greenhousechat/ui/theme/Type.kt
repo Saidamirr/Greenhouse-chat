@@ -43,6 +43,21 @@ val Typography = Typography(
         letterSpacing = 0.sp,
         color = Color(51, 186, 39)
     ),
+    bodyMedium  = TextStyle(
+        fontFamily = RobotoRegular,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp,
+    ),
+    labelSmall = TextStyle(
+        fontFamily = RobotoRegular,
+        fontWeight = FontWeight.Normal,
+        fontSize = 20.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp,
+        color = Color.White
+    ),
     /* Other default text styles to override
 
     labelSmall = TextStyle(

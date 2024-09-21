@@ -13,11 +13,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.material.TextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +33,7 @@ import com.example.greenhousechat.ui.theme.Typography
 import com.example.greenhousechat.viewmodel.AppViewModel
 
 @Composable
-fun ProfileScreen(modifier: Modifier = Modifier,
+fun EditProfileScreen(modifier: Modifier = Modifier,
                   appViewModel: AppViewModel,
                   navController: NavHostController
 ) {
@@ -45,22 +45,18 @@ fun ProfileScreen(modifier: Modifier = Modifier,
         .fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        ProfileScreenContent(profileData = profileData)
+        EditProfileScreenContent(profileData = profileData)
 
         Column {
             Button(onClick = { appViewModel.onEditProfile(navController)}) {
-                Text(text = "Редактировать", style = Typography.labelSmall)
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(onClick = { appViewModel.signOut(navController)}) {
-                Text(text = "Выйти из профиля", style = Typography.labelSmall)
+                Text(text = "Сохранить", style = Typography.labelSmall)
             }
         }
     }
 }
 
 @Composable
-fun ProfileScreenContent(profileData: ProfileData) {
+fun EditProfileScreenContent(profileData: ProfileData) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White)
 
@@ -80,22 +76,23 @@ fun ProfileScreenContent(profileData: ProfileData) {
             )
         }
         Spacer(modifier = Modifier.height(20.dp))
-        ProfileInfoField("Имя", profileData.name)
-        ProfileInfoField("Username", profileData.username)
-        ProfileInfoField("Телефон", "+" + profileData.phone)
-        ProfileInfoField("Дата рождения", profileData.birthday)
+        EditProfileInfoField("Имя", profileData.name)
+        EditProfileInfoField("Username", profileData.username)
+        EditProfileInfoField("Телефон", "+" + profileData.phone)
+        EditProfileInfoField("Дата рождения", profileData.birthday)
     }
 }
 
 @Composable
-fun ProfileInfoField(key: String, value: String) {
+fun EditProfileInfoField(key: String, value: String) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 10.dp, horizontal = 10.dp)
         .background(Color.White)) {
         Text(
-            text = "$key: $value",
+            text = "$key: ",
             style = Typography.bodyMedium,
         )
+        OutlinedTextField(value = ".", onValueChange = {})
     }
 }

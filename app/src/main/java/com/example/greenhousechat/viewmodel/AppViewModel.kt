@@ -1,11 +1,14 @@
 package com.example.greenhousechat.viewmodel
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
@@ -22,6 +25,7 @@ import com.example.greenhousechat.network.apiService
 import kotlinx.coroutines.launch
 import retrofit2.Response
 
+@SuppressLint("StaticFieldLeak")
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
 
@@ -33,6 +37,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     var isNumberValid: Boolean by  mutableStateOf(false)
         private set
+
+    private val context = getApplication<Application>().applicationContext
 
     private val sharedPreferences = getApplication<Application>().getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
 
@@ -50,13 +56,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onNumberSubmit(navController: NavHostController) {
-        var response: Response<Any>
         viewModelScope.launch {
-            response = apiService.getAuthCode(PhoneRequest(fullPhoneNumber))
-            Log.d("API", "${response.code()}")
-            Log.d("API", fullPhoneNumber)
+            try {
+                val response =
+                    apiService.getAuthCode(PhoneRequest(fullPhoneNumber))
+                Toast.makeText(context, "Запрос отправлен, ожидаем код...", Toast.LENGTH_SHORT).show()
+
+                if (response.isSuccessful) {
+                    navController.navigate(Screen.EnterCodeScreen.route)
+                } else if (response.code() == 422) {
+                    Toast.makeText(context, "Неверный номер телефона", Toast.LENGTH_SHORT).show()
+                    Log.e("Network Error", "Неверный номер телефона")
+
+                }
+            } catch (e: Exception) {
+                // Обработка исключений (например, ошибка сети)
+                Toast.makeText(context, "Проверьте интернет-соединение...", Toast.LENGTH_SHORT).show()
+                Log.e("Network Error", "Ошибка сети: ${e.message}")
+            }
         }
-        navController.navigate(Screen.EnterCodeScreen.route)
     }
 
     var verificationCode: String by  mutableStateOf("")
@@ -66,10 +84,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     fun onCodeInputChange(input: String) {
-        verificationCode = input
-        if( isValidVerificationCode(verificationCode)) {
-            isVerificationCodeValid = true
-        }
+        if(input.length <= 6) verificationCode = input
+        if( isValidVerificationCode(verificationCode)) isVerificationCodeValid = true
+        else isVerificationCodeValid = false
     }
 
     fun isValidVerificationCode(verificationCode: String): Boolean {
@@ -84,6 +101,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response : Response<AuthResponse> =
                     apiService.checkAuthCode(AuthRequest(phone = fullPhoneNumber, code = verificationCode))
+                Toast.makeText(context, "Запрос отправлен, ожидаем...", Toast.LENGTH_SHORT).show()
 
                 if (response.isSuccessful) {
                     val authResponse = response.body() // Получаем тело ответа
@@ -103,17 +121,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 .putBoolean("is_authorized", true) //вход в акк
                                 .apply()
                             getProfileData()
-                            navController.navigate(Screen.ChatScreen.route)
+                            navController.navigate(Screen.ChatScreen.route) {
+                                popUpTo(0) { inclusive = true } // Удаляем все экраны из стека
+                                launchSingleTop = true // Предотвращаем дублирование экрана
+                            }
                         } else {
                             navController.navigate(Screen.RegistrationScreen.route)
                         }
                     }
+                } else if (response.code() == 422) {
+                    Toast.makeText(context, "Неверный код", Toast.LENGTH_SHORT).show()
+                    Log.e("Network Error", "Неверный код")
+
                 } else {
-                    // Обработка ошибки
-                    Log.e("API Error", "Ошибка: ${response.code()}")
+                    Toast.makeText(context, "Что-то пошло не так", Toast.LENGTH_SHORT).show()
+
                 }
             } catch (e: Exception) {
                 // Обработка исключений (например, ошибка сети)
+                Toast.makeText(context, "Проверьте интернет-соединение...", Toast.LENGTH_SHORT).show()
                 Log.e("Network Error", "Ошибка сети: ${e.message}")
             }
         }
@@ -141,6 +167,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         name = name,
                         username = userName)
                     )
+                Toast.makeText(context, "Запрос отправлен, ожидаем...", Toast.LENGTH_SHORT).show()
 
                 if( response.isSuccessful) {
                     val authResponse = response.body() // Получаем тело ответа
@@ -160,14 +187,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             .apply()
                         getProfileData() // кеширование
                     }
-                    navController.navigate(Screen.ChatScreen.route)
-                } else {
+                    navController.navigate(Screen.ChatScreen.route) {
+                        popUpTo(0) { inclusive = true } // Удаляем все экраны из стека
+                        launchSingleTop = true // Предотвращаем дублирование экрана
+                    }
+                } else if (response.code() == 422) {
+                    Toast.makeText(context, "Неверный формат Username", Toast.LENGTH_SHORT).show()
                     Log.e("Network Error", "Ошибка сети:")
 
                 }
 
             } catch (e: Exception) {
                 Log.e("Network Error", "Ошибка сети: ${e.message}")
+                Toast.makeText(context, "Проверьте интернет-соединение...", Toast.LENGTH_SHORT).show()
+
             }
         }
     }
@@ -205,28 +238,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if( response.isSuccessful) {
                     val profileData = response.body()?.profile_data // Получаем тело ответа
                     //Сохраняем данные из AuthResponse
-                    profileData?.let {
-
-                        sharedPreferencesEditor
-                            .putString("name", it.name)
-                            .putString("vk", it.vk)
-                            .putString("city", it.city)
-                            .putString("last", it.last)
-                            .putString("avatar", it.avatar)
-                            .putString("avatarNormal", it.avatars.avatar)
-                            .putString("avatarBig", it.avatars.bigAvatar)
-                            .putString("avatarMini", it.avatars.miniAvatar)
-                            .putString("birthday", it.birthday)
-                            .putString("created", it.created)
-                            .putString("phone", it.phone)
-                            .putString("instagram", it.instagram)
-                            .putString("status", it.status)
-                            .putString("username", it.username)
-                            .putInt("completed_tasks", it.completed_task)
-                            .putInt("id", it.id)
-                            .putBoolean("isOnline", it.online)
-                            .apply()
-                    }
+                    sharedPreferencesEditor
+                        .putString("name", profileData?.name)
+                        .putString("name", profileData?.name)
+                        .putString("vk", profileData?.vk)
+                        .putString("city", profileData?.city)
+                        .putString("last", profileData?.last)
+                        .putString("avatar", profileData?.avatar)
+                        .putString("avatarNormal", profileData?.avatars?.avatar)
+                        .putString("avatarBig", profileData?.avatars?.bigAvatar)
+                        .putString("avatarMini", profileData?.avatars?.miniAvatar)
+                        .putString("birthday", profileData?.birthday)
+                        .putString("created", profileData?.created)
+                        .putString("phone", profileData?.phone)
+                        .putString("instagram", profileData?.instagram)
+                        .putString("status", profileData?.status)
+                        .putString("username", profileData?.username)
+                        .putInt("completed_tasks", profileData?.completed_task ?: 0)
+                        .putInt("id", profileData?.id  ?: 0)
+                        .putBoolean("isOnline", profileData?.online ?: false)
+                        .apply()
                 } else {
                     Log.e("Network Error", "Ошибка: Запрос профиля был неуспешен")
 
@@ -234,34 +265,48 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             } catch (e: Exception) {
                 Log.e("Network Error", "Ошибка сети: ${e.message}")
+                Toast.makeText(context, "Проверьте интернет-соединение...", Toast.LENGTH_SHORT).show()
+
             }
         }
     }
 
     fun getLocalProfileData(): ProfileData {
         return ProfileData(
-            name = sharedPreferences.getString("name", "..") ?: "default",
-            username = sharedPreferences.getString("username", "..") ?: "default",
-            birthday = sharedPreferences.getString("birthday", "..") ?: "default",
-            city = sharedPreferences.getString("city", "..") ?: "default",
-            avatar = sharedPreferences.getString("avatar", "..") ?: "default",
-            vk = sharedPreferences.getString("vk", "..") ?: "default",
-            instagram = sharedPreferences.getString("instagram", "..") ?: "default",
-            status = sharedPreferences.getString("status", "..") ?: "default",
+            name = sharedPreferences.getString("name", "") ?: "default",
+            username = sharedPreferences.getString("username", "") ?: "default",
+            birthday = sharedPreferences.getString("birthday", "") ?: "default",
+            city = sharedPreferences.getString("city", "") ?: "default",
+            avatar = sharedPreferences.getString("avatar", "") ?: "default",
+            vk = sharedPreferences.getString("vk", "") ?: "default",
+            instagram = sharedPreferences.getString("instagram", "") ?: "default",
+            status = sharedPreferences.getString("status", "") ?: "default",
             id = sharedPreferences.getInt("id", 0),
-            last = sharedPreferences.getString("last", "..") ?: "default",
+            last = sharedPreferences.getString("last", "") ?: "default",
             online  = sharedPreferences.getBoolean("online", false),
-            created = sharedPreferences.getString("created", "..") ?: "default",
-            phone = sharedPreferences.getString("phone", "..") ?: "default",
+            created = sharedPreferences.getString("created", "") ?: "default",
+            phone = sharedPreferences.getString("phone", "") ?: "default",
             completed_task = sharedPreferences.getInt("completed_task", 0),
             avatars = Avatars(
-                avatar = sharedPreferences.getString("avatarNormal", "..") ?: "default",
-                bigAvatar = sharedPreferences.getString("avatarBig", "..") ?: "default",
-                miniAvatar = sharedPreferences.getString("avatarMini", "..") ?: "default"
+                avatar = sharedPreferences.getString("avatarNormal", "") ?: "default",
+                bigAvatar = sharedPreferences.getString("avatarBig", "") ?: "default",
+                miniAvatar = sharedPreferences.getString("avatarMini", "") ?: "default"
                 )
             )
     }
 
+    fun signOut(navController: NavHostController) {
+        sharedPreferencesEditor.clear().apply()
+        navController.navigate(Screen.SendPhoneScreen.route)
+    }
 
+    fun logPrefs() {
+        val accessToken = sharedPreferences.getString("access_token", "...")
+        Log.d("SharedPreferences", "access token: $accessToken")
+    }
+
+    fun onEditProfile(navController: NavHostController) {
+        navController.navigate(Screen.EditProfileScreen.route)
+    }
 }
 

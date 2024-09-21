@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.greenhousechat.ui.ChatScreen
+import com.example.greenhousechat.ui.EditProfileScreen
 import com.example.greenhousechat.ui.EnterCodeScreen
 import com.example.greenhousechat.ui.ProfileScreen
 import com.example.greenhousechat.ui.RegistrationScreen
@@ -18,6 +19,7 @@ sealed class Screen(val route: String) {
     object RegistrationScreen : Screen("registration")
     object ChatScreen : Screen("chats")
     object ProfileScreen : Screen("profile")
+    object EditProfileScreen : Screen("edit_profile")
 }
 
 @Composable
@@ -38,6 +40,9 @@ fun AppNavHost(navController: NavHostController, appViewModel: AppViewModel, fir
         }
         composable(Screen.ProfileScreen.route) {
             ProfileScreen(appViewModel = appViewModel, navController = navController)
+        }
+        composable(Screen.EditProfileScreen.route) {
+            EditProfileScreen(appViewModel = appViewModel, navController = navController)
         }
     }
 }
