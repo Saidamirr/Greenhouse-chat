@@ -21,9 +21,9 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun AppNavHost(navController: NavHostController, appViewModel: AppViewModel) {
+fun AppNavHost(navController: NavHostController, appViewModel: AppViewModel, firstScreen: String) {
 
-    NavHost(navController = navController, startDestination = Screen.ChatScreen.route) {
+    NavHost(navController = navController, startDestination = firstScreen) {
         composable(Screen.SendPhoneScreen.route) {
             SendPhoneScreen(navController = navController, appViewModel = appViewModel)
         }
@@ -34,7 +34,7 @@ fun AppNavHost(navController: NavHostController, appViewModel: AppViewModel) {
             RegistrationScreen(navController = navController, appViewModel = appViewModel)
         }
         composable(Screen.ChatScreen.route) {
-            ChatScreen()
+            ChatScreen(navController = navController, appViewModel = appViewModel)
         }
         composable(Screen.ProfileScreen.route) {
             ProfileScreen(appViewModel = appViewModel, navController = navController)

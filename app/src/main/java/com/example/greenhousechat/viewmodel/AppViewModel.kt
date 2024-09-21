@@ -11,7 +11,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import com.example.greenhousechat.data.AuthRequest
 import com.example.greenhousechat.data.AuthResponse
+import com.example.greenhousechat.data.Avatars
 import com.example.greenhousechat.data.PhoneRequest
+import com.example.greenhousechat.data.ProfileData
+import com.example.greenhousechat.data.ProfileResponse
 import com.example.greenhousechat.data.RegistrationRequest
 import com.example.greenhousechat.data.RegistrationResponse
 import com.example.greenhousechat.navigation.Screen
@@ -99,6 +102,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 .putString("user_id", userId)
                                 .putBoolean("is_authorized", true) //вход в акк
                                 .apply()
+                            getProfileData()
+                            navController.navigate(Screen.ChatScreen.route)
                         } else {
                             navController.navigate(Screen.RegistrationScreen.route)
                         }
@@ -112,6 +117,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e("Network Error", "Ошибка сети: ${e.message}")
             }
         }
+    }
+
+    fun getIsAuthorized(): Boolean {
+        return sharedPreferences.getBoolean("is_authorized", false)
     }
 
     var name: String by  mutableStateOf("")
@@ -149,10 +158,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             .putString("user_id", userId)
                             .putBoolean("is_authorized", true) //вход в акк
                             .apply()
+                        getProfileData() // кеширование
                     }
                     navController.navigate(Screen.ChatScreen.route)
                 } else {
-                    val authResponse = response.errorBody()
+                    Log.e("Network Error", "Ошибка сети:")
+
                 }
 
             } catch (e: Exception) {
@@ -179,8 +190,76 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         isUsernNameValid = isValidUsername(userName)
     }
 
-    fun onToProfileButtonClick() {
+    fun onToProfileButtonClick(navController: NavHostController) {
+        navController.navigate(Screen.ProfileScreen.route)
+    }
 
+    fun getProfileData() {
+        viewModelScope.launch {
+            try {
+                val accessToken = sharedPreferences.getString("access_token", "") ?:  " "
+                val tokenString = "Bearer $accessToken"
+                val response : Response<ProfileResponse> =
+                    apiService.getUserProfile(tokenString)
+
+                if( response.isSuccessful) {
+                    val profileData = response.body()?.profile_data // Получаем тело ответа
+                    //Сохраняем данные из AuthResponse
+                    profileData?.let {
+
+                        sharedPreferencesEditor
+                            .putString("name", it.name)
+                            .putString("vk", it.vk)
+                            .putString("city", it.city)
+                            .putString("last", it.last)
+                            .putString("avatar", it.avatar)
+                            .putString("avatarNormal", it.avatars.avatar)
+                            .putString("avatarBig", it.avatars.bigAvatar)
+                            .putString("avatarMini", it.avatars.miniAvatar)
+                            .putString("birthday", it.birthday)
+                            .putString("created", it.created)
+                            .putString("phone", it.phone)
+                            .putString("instagram", it.instagram)
+                            .putString("status", it.status)
+                            .putString("username", it.username)
+                            .putInt("completed_tasks", it.completed_task)
+                            .putInt("id", it.id)
+                            .putBoolean("isOnline", it.online)
+                            .apply()
+                    }
+                } else {
+                    Log.e("Network Error", "Ошибка: Запрос профиля был неуспешен")
+
+                }
+
+            } catch (e: Exception) {
+                Log.e("Network Error", "Ошибка сети: ${e.message}")
+            }
+        }
+    }
+
+    fun getLocalProfileData(): ProfileData {
+        return ProfileData(
+            name = sharedPreferences.getString("name", "..") ?: "default",
+            username = sharedPreferences.getString("username", "..") ?: "default",
+            birthday = sharedPreferences.getString("birthday", "..") ?: "default",
+            city = sharedPreferences.getString("city", "..") ?: "default",
+            avatar = sharedPreferences.getString("avatar", "..") ?: "default",
+            vk = sharedPreferences.getString("vk", "..") ?: "default",
+            instagram = sharedPreferences.getString("instagram", "..") ?: "default",
+            status = sharedPreferences.getString("status", "..") ?: "default",
+            id = sharedPreferences.getInt("id", 0),
+            last = sharedPreferences.getString("last", "..") ?: "default",
+            online  = sharedPreferences.getBoolean("online", false),
+            created = sharedPreferences.getString("created", "..") ?: "default",
+            phone = sharedPreferences.getString("phone", "..") ?: "default",
+            completed_task = sharedPreferences.getInt("completed_task", 0),
+            avatars = Avatars(
+                avatar = sharedPreferences.getString("avatarNormal", "..") ?: "default",
+                bigAvatar = sharedPreferences.getString("avatarBig", "..") ?: "default",
+                miniAvatar = sharedPreferences.getString("avatarMini", "..") ?: "default"
+                )
+            )
     }
 
 

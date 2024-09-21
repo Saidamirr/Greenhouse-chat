@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.greenhousechat.navigation.AppNavHost
+import com.example.greenhousechat.navigation.Screen
 import com.example.greenhousechat.ui.SendPhoneScreen
 import com.example.greenhousechat.ui.theme.GreenhouseChatTheme
 import com.example.greenhousechat.viewmodel.AppViewModel
@@ -25,7 +26,13 @@ class MainActivity : ComponentActivity() {
             GreenhouseChatTheme {
                 val navController = rememberNavController()
                 val appViewModel: AppViewModel = viewModel()
-                AppNavHost(navController = navController, appViewModel) // Здесь вызывается NavHost
+                val isAuthorized: Boolean = appViewModel.getIsAuthorized()
+                val firstScreenPath: String = if(isAuthorized) {
+                    Screen.ChatScreen.route
+                } else {
+                    Screen.SendPhoneScreen.route
+                }
+                AppNavHost(navController = navController, appViewModel, firstScreenPath) // Здесь вызывается NavHost
             }
         }
 

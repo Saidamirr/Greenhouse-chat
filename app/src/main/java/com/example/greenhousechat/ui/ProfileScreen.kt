@@ -13,28 +13,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.greenhousechat.data.ProfileData
 import com.example.greenhousechat.viewmodel.AppViewModel
 
 @Composable
 fun ProfileScreen(modifier: Modifier = Modifier,
-               appViewModel: AppViewModel,
-               navController: NavHostController
+                  appViewModel: AppViewModel,
+                  navController: NavHostController
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally) {
-        TextField(modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp),
+    val profileData: ProfileData = appViewModel.getLocalProfileData()
+    ProfileScreenContent(profileData = profileData)
 
-            value = appViewModel.verificationCode,
-            onValueChange = { appViewModel.onCodeInputChange(it) },
-            label = { Text(text = "Enter code") })
+}
 
-        Button(onClick = { appViewModel.onCodeSubmit(navController) },
-        ) {
-            androidx.compose.material3.Text("Submit")
-        }
+@Composable
+fun ProfileScreenContent(profileData: ProfileData) {
+    Column {
+        Text(text = profileData.phone)
+        Text(text = profileData.username)
+        Text(text = profileData.name)
+        Text(text = profileData.birthday)
+        Text(text = profileData.status)
     }
 }
