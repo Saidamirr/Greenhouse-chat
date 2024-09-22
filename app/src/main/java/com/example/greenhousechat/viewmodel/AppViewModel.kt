@@ -3,27 +3,44 @@ package com.example.greenhousechat.viewmodel
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
+import com.example.greenhousechat.R
 import com.example.greenhousechat.data.AuthRequest
 import com.example.greenhousechat.data.AuthResponse
+import com.example.greenhousechat.data.AvatarDataApply
+import com.example.greenhousechat.data.AvatarDataResponse
 import com.example.greenhousechat.data.Avatars
 import com.example.greenhousechat.data.PhoneRequest
 import com.example.greenhousechat.data.ProfileData
 import com.example.greenhousechat.data.ProfileResponse
+import com.example.greenhousechat.data.RefreshTokenWrapper
 import com.example.greenhousechat.data.RegistrationRequest
 import com.example.greenhousechat.data.RegistrationResponse
+import com.example.greenhousechat.data.UserProfileChangeApply
 import com.example.greenhousechat.navigation.Screen
 import com.example.greenhousechat.network.apiService
 import kotlinx.coroutines.launch
 import retrofit2.Response
+import java.io.ByteArrayOutputStream
 
 @SuppressLint("StaticFieldLeak")
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -209,7 +226,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         // Регулярное выражение для проверки допустимых символов
         val regex = Regex("^[A-Za-z0-9_-]+$")
         // Проверка, что строка не пустая и длина не превышает 32 символов
-        return username.isNotEmpty() && username.length <= 32 && regex.matches(username)
+        return username.isNotEmpty() && username.length <= 32 && regex.matches(username) && username.length >= 5
     }
 
 
@@ -240,7 +257,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     //Сохраняем данные из AuthResponse
                     sharedPreferencesEditor
                         .putString("name", profileData?.name)
-                        .putString("name", profileData?.name)
                         .putString("vk", profileData?.vk)
                         .putString("city", profileData?.city)
                         .putString("last", profileData?.last)
@@ -258,6 +274,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         .putInt("id", profileData?.id  ?: 0)
                         .putBoolean("isOnline", profileData?.online ?: false)
                         .apply()
+                } else if(response.code() == 401) {
+                    refreshAccessToken()
+                    getProfileData()
                 } else {
                     Log.e("Network Error", "Ошибка: Запрос профиля был неуспешен")
 
@@ -271,8 +290,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    var birthday: String by  mutableStateOf("")
+        private set
+
+    var city: String by  mutableStateOf("")
+        private set
+
+    var status: String by  mutableStateOf("")
+        private set
+
+    fun onStatusInputChange(it: String) {
+        status = it
+    }
+
+    fun onBirthdayInputChange(it: String) {
+        birthday = it
+    }
+
+    fun onCityInputChange(it: String) {
+        city = it
+    }
+
     fun getLocalProfileData(): ProfileData {
-        return ProfileData(
+        val localProfileData = ProfileData(
             name = sharedPreferences.getString("name", "") ?: "default",
             username = sharedPreferences.getString("username", "") ?: "default",
             birthday = sharedPreferences.getString("birthday", "") ?: "default",
@@ -293,6 +333,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 miniAvatar = sharedPreferences.getString("avatarMini", "") ?: "default"
                 )
             )
+
+        name = localProfileData.name
+        birthday = localProfileData.birthday
+        city = localProfileData.city
+
+        return localProfileData
     }
 
     fun signOut(navController: NavHostController) {
@@ -305,8 +351,86 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         Log.d("SharedPreferences", "access token: $accessToken")
     }
 
-    fun onEditProfile(navController: NavHostController) {
+    fun onToEditProfile(navController: NavHostController) {
         navController.navigate(Screen.EditProfileScreen.route)
     }
-}
 
+    fun saveProfileChanges(navController: NavHostController) {
+        sharedPreferencesEditor
+            .putString("name", name)
+            .putString("city", city)
+            .putString("birthday", birthday)
+            .putString("status", status)
+            .apply()
+        getLocalProfileData()
+        navController.navigate(Screen.ProfileScreen.route) {
+            popUpTo(Screen.EditProfileScreen.route) {inclusive = true}
+            launchSingleTop = true
+        }
+
+        val profileChanges = UserProfileChangeApply(
+            name = name,
+            username = userName,
+            birthday = birthday,
+            city = city,
+            vk = null,
+            instagram = null,
+            status = status,
+            avatar = null
+        )
+
+        val accessToken = sharedPreferences.getString("access_token", "") ?:  " "
+        val tokenString = "Bearer $accessToken"
+
+        viewModelScope.launch {
+            try {
+                val response: Response<AvatarDataResponse> =
+                    apiService.putUserProfileChanges(tokenString, profileChanges)
+                if (response.isSuccessful) {
+                    val avatars: Avatars? = response.body()?.avatars
+                    sharedPreferencesEditor
+                        .putString("avatarNormal", avatars?.avatar)
+                        .putString("avatarBig", avatars?.bigAvatar)
+                        .putString("avatarMini", avatars?.miniAvatar)
+                        .apply()
+                } else if(response.code() == 401) {
+                    refreshAccessToken()
+                    saveProfileChanges(navController)
+                }
+            } catch (e: Exception) {
+                Log.e("Network Error", "Ошибка сети: ${e.message}")
+            }
+        }
+    }
+
+    fun refreshAccessToken() {
+        viewModelScope.launch {
+            try {
+                val refreshTokenStr = sharedPreferences.getString("refresh_token", "")
+                val response: Response<RegistrationResponse> =
+                    apiService.refreshAccessToken(RefreshTokenWrapper(refreshTokenStr))
+                if( response.isSuccessful) {
+                    val authResponse = response.body() // Получаем тело ответа
+                    authResponse?.let {
+                        // Используем данные из AuthResponse
+                        val accessToken = it.access_token
+                        val refreshToken = it.refresh_token
+                        val userId = it.user_id
+
+                        // Дальнейшая логика, навигация на следующий экран
+
+                        sharedPreferencesEditor
+                            .putString("access_token", accessToken)
+                            .putString("refresh_token", refreshToken)
+                            .putString("user_id", userId)
+                            .putBoolean("is_authorized", true) //вход в акк
+                            .apply()
+                        getProfileData() // кеширование
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("Network Error", "Ошибка сети: ${e.message}")
+            }
+        }
+    }
+}

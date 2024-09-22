@@ -55,3 +55,27 @@ data class Avatars(
     val bigAvatar: String,
     val miniAvatar: String
 )
+
+data class UserProfileChangeApply(
+    val name: String?,
+    val username: String,
+    val birthday: String,
+    val city: String?,
+    val vk: String?,
+    val instagram: String?,
+    val status: String?,
+    val avatar: AvatarDataApply?
+)
+
+data class AvatarDataApply(
+    val filename: String,
+    val base_64: String
+)
+
+data class AvatarDataResponse(
+    val avatars: Avatars
+)
+
+data class RefreshTokenWrapper(
+    val refresh_token: String?
+)
